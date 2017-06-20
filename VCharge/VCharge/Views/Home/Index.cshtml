@@ -1,0 +1,334 @@
+﻿@*// ===============================
+// AUTHOR           : Susheel Tyagi
+// CREATE DATE      : 12/06/2017
+// PURPOSE          : Demo Application for Know the Energy Consumption
+// SPECIAL NOTES    : This application has been implemented by using C#, ASP.Net Web API, MVC, AJAX Control,Bootstrap,
+//                    FileHelper library and JQuery. For Chart display used the “Google Column Chart”.
+// ===============================
+// Change History: 1.0
+//
+//==================================*@
+
+@{
+    ViewBag.Title = "Home Page";
+    Layout = null;
+}
+<script src="~/Scripts/jquery-1.10.2.min.js"></script>
+<script src="~/Scripts/bootstrap.min.js"></script>
+
+<script src="https://code.jquery.com/jquery-1.12.4.js"></script>
+<script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+<script type="text/javascript" src="https://www.google.com/jsapi"></script>
+
+<script type="text/javascript">
+    google.load("visualization", "1", { packages: ["corechart"] });
+</script>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width" />
+    <title>Demo Application for Energy Consumption</title>
+</head>
+<style>
+    span {
+        font-family: Arial;
+        color: blue;
+        font-size: large;
+        padding-bottom: 3cm;
+    }
+
+    .first-column {
+        width: 40%;
+        float: left;
+    }
+
+    .second-column {
+        width: 60%;
+        float: right;
+    }
+</style>
+<body>
+    <div class="modal-body">
+        <div class="first-column">
+            <!-- Tabular Data -->
+            <div>
+                <div class="btn-group pull-left  btn-group-lg">
+                    <button id="btnYear" class="btn btn-danger">Year</button>
+                    <button id="btnMonth" class="btn btn-success">Month</button>
+                    <button id="btnWeek" class="btn btn-warning">Week</button>
+                    <button id="btnDay" class="btn btn-primary">Day</button>
+                    <button id="btnPeriodic" class="btn btn-info">Periodic Data</button>
+                </div>
+
+                <br /><br />
+                <div class="input-lg  pull-left " style="width:80%;">
+                    <div style="width:100%; font-size:12px; font-weight:100">
+                        <span class="add-on" style="color:red"> Note :- Default file location define in web.config. key="FilePath" value='c:\\MeterData.csv'</span>
+                    </div>
+                    <div style="width:100%; font-size:12px; font-weight:100">
+                        <span class="add-on"> Unit = (Current Meter Reading - Previous Meter Reading)</span>
+                    </div>
+                </div>
+
+                <div class="input-daterange pull-left " style="width:80%;  padding-top: 2em; margin-top: 20px;">
+                    <div id="Status" class="bg-info text-white" style="width:100%; font-size:25px;"></div><br />
+                </div>
+                <br />
+                <div id="diplayPanel" style="width:80%"></div>
+            </div>
+
+        </div>
+
+        <div class="second-column">
+            <!-- Your second column here -->
+            <p class="text-danger" style="font-size:x-large">Demo app. view energy consumption by Day, Week, Month, Year and between any two given dates </p>
+            <br />
+            <h4>Please select the start date and end date for periodic data only </h4>
+
+            <form class="form-inline">
+                <div class="form-group">
+                    <span class="add-on">FromDate</span>
+                    <input id="txtStartDate" type="text" class="form-control" placeholder="dd-mm-yyyy">
+                </div>
+                <div class="form-group">
+                    <span class="add-on">ToDate</span>
+                    <input id="txtEndDate" type="text" class="form-control" placeholder="dd-mm-yyyy">
+                </div>
+            </form>
+
+            <div id="chartdiv" style="width: 600px; height: 350px;">
+            </div>
+        </div>
+
+    </div>
+
+</body>
+</html>
+
+<script type="text/javascript">
+    $("#txtStartDate").datepicker({ dateFormat: 'dd-mm-yy' });
+    $("#txtEndDate").datepicker({ dateFormat: 'dd-mm-yy' });
+
+    //View Energy by Year bases
+    $('#btnYear').on('click', function (e) {
+        $("#diplayPanel").empty();
+        $(function () {
+            debugger;
+            clearControls();
+            $.ajax({
+                url: '/api/GetYearlyReading',
+                type: 'GET',
+                dataType: 'json',
+                success: function (data) {
+                    if (data.length > 0) {
+                        var table = $("<table/>").addClass("table table-responsive  table-striped table-bordered");
+                        var header = $("<thead/>").html("<tr><th>Year</th><th>Units / Year</th>");
+                        table.append(header);
+                        $.each(data, function (i, val) {
+                            var row = $("<tr/>");
+                            row.append($("<td/>").html(val.Date));
+                            row.append($("<td/>").html(val.Unit));
+                            table.append(row);
+                        });
+                        $('#Status').html("Number of records found " + data.length + " (Year) ");
+                        $("#diplayPanel").html(table);
+                        drawChart(data);
+                    }
+                    else {
+                        $('#Status').html("NO Recors Found");
+                    }
+                },
+                failure: function () {
+                    alert("Error");
+                    $("#diplayPanel").empty();
+                    $('#Status').html(ex.Error);
+                }
+            });
+        })
+    })
+
+    //View Energy by Month bases
+    $('#btnMonth').on('click', function (e) {
+        $("#diplayPanel").empty();
+        $(function () {
+            debugger;
+            clearControls();
+            $.ajax({
+                url: '/api/GetMonthlyReading',
+                type: 'GET',
+                dataType: 'json',
+                success: function (data) {
+                    debugger;
+                    if (data.length > 0) {
+                        var table = $("<table/>").addClass("table table-responsive  table-striped table-bordered");
+                        var header = $("<thead/>").html("<tr><th>Month-Year</th><th>Units / Month</th>");
+                        table.append(header);
+                        $.each(data, function (i, val) {
+                            var row = $("<tr/>");
+                            row.append($("<td/>").html(val.Date));
+                            row.append($("<td/>").html(val.Unit));
+                            table.append(row);
+                        });
+                        $('#Status').html("Number of records found " + data.length + " (Month) ");
+                        $("#diplayPanel").html(table);
+                        drawChart(data);
+                    }
+                    else {
+                        $('#Status').html("NO Recors Found");
+                    }
+                },
+                failure: function () {
+                    alert("Error");
+                    $("#diplayPanel").empty();
+                    $('#Status').html(ex.Error);
+                }
+            });
+        })
+    })
+
+    //View Energy by Week bases
+    $('#btnWeek').on('click', function (e) {
+        $("#diplayPanel").empty();
+        $(function () {
+            debugger;
+            clearControls();
+            $.ajax({
+                url: '/api/GetWeeklyReading',
+                type: 'GET',
+                dataType: 'json',
+                success: function (data) {
+                    if (data.length > 0) {
+                        var table = $("<table/>").addClass("table table-responsive  table-striped table-bordered");
+                        var header = $("<thead/>").html("<tr><th>Month-Year / Week of the Year</th><th>Units/ Week</th>");
+                        table.append(header);
+                        $.each(data, function (i, val) {
+                            var row = $("<tr/>");
+                            row.append($("<td/>").html(val.Date));
+                            row.append($("<td/>").html(val.Unit));
+                            table.append(row);
+                        });
+                        $('#Status').html("Number of records found " + data.length + " (Week) ");
+                        $("#diplayPanel").html(table);
+                        drawChart(data);
+                    }
+                    else {
+                        $('#Status').html("NO Recors Found");
+                    }
+                },
+                failure: function () {
+                    alert("Error");
+                    $("#diplayPanel").empty();
+                    $('#Status').html(ex.Error);
+                }
+            });
+        })
+    })
+
+    //View Energy by Day bases
+    $('#btnDay').on('click', function (e) {
+        $("#diplayPanel").empty();
+        $(function () {
+            debugger;
+            clearControls();
+            $.ajax({
+                url: '/api/GetDailyReading',
+                type: 'GET',
+                dataType: 'json',
+                success: function (data) {
+                    if (data.length > 0) {
+                        var table = $("<table/>").addClass("table table-responsive  table-striped table-bordered");
+                        var header = $("<thead/>").html("<tr><th>Date-Month-Year</th><th>Units / Day</th>");
+                        table.append(header);
+                        $.each(data, function (i, val) {
+                            var row = $("<tr/>");
+                            row.append($("<td/>").html(val.Date));
+                            row.append($("<td/>").html(val.Unit));
+                            table.append(row);
+                        });
+                        $('#Status').html("Number of records found " + data.length + " (Day) ");
+                        $("#diplayPanel").html(table);
+                        drawChart(data);
+                    }
+                    else {
+                        $('#Status').html("NO Recors Found");
+                    }
+                },
+                failure: function () {
+                    alert("Error");
+                    $("#diplayPanel").empty();
+                    $('#Status').html(ex.Error);
+                }
+            });
+        })
+    })
+
+    //View Energy by Periodic bases
+    $('#btnPeriodic').on('click', function (e) {
+        $("#diplayPanel").empty();
+        $(function () {
+            debugger;
+            var stDate = $('#txtStartDate').val();
+            var edDate = $('#txtEndDate').val();
+            clearControls();
+            $.ajax({
+                url: '/api/GetReadingByPeriod/{startDate}/{endDate}',
+                type: 'GET',
+                dataType: 'json',
+                data: { "startDate": stDate.toString(), "endDate": edDate.toString() },
+
+                success: function (data) {
+                    debugger;
+                    if (data.length > 0) {
+                        var table = $("<table/>").addClass("table table-responsive  table-striped table-bordered");
+                        var header = $("<thead/>").html("<tr><th>Date-Month-Year</th><th>Units / Month</th>");
+                        table.append(header);
+                        $.each(data, function (i, val) {
+                            var row = $("<tr/>");
+                            row.append($("<td/>").html(val.Date));
+                            row.append($("<td/>").html(val.Unit));
+                            table.append(row);
+                        });
+                        $('#Status').html("Number of records found " + data.length + " between two dates ");
+                        $("#diplayPanel").html(table);
+                        drawChart(data);
+                    }
+                    else {
+                        debugger;
+                        $('#Status').html("NO Recors Found");
+                    }
+                },
+                failure: function (ex) {
+                    alert("Error");
+                    clearControls();
+                }
+            });
+        })
+    })
+
+    //Google Chart draw Method
+    function drawChart(data) {
+        var dataCH = new google.visualization.DataTable();
+        dataCH.addColumn('string', 'Date');
+        dataCH.addColumn('number', 'Unit');
+
+        for (var i = 0; i < data.length; i++) {
+            dataCH.addRow([data[i].Date, data[i].Unit]);
+        }
+
+        var options = {
+            title: 'X-Axis (Date) / Y-Axis (Unit)',
+            width: 1000,
+            height: 700
+        };
+
+        var chart = new google.visualization.ColumnChart(document.getElementById('chartdiv'));
+        chart.draw(dataCH, options);
+    }
+
+    function clearControls() {
+        $("#diplayPanel").empty();
+        $('#Status').html('');
+        $("#txtStartDate").val('');
+        $("#txtEndDate").val('');
+    }
+</script>
